@@ -1,0 +1,16 @@
+# Runtime state (generated locally)
+state.json
+remote-state.json
+
+# Task queue (ephemeral)
+tasks/pending/*.json
+tasks/running/*.json
+tasks/done/*.json
+
+# Logs
+*.log
+*.log.tmp
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,17 @@
+[Unit]
+Description=Cross-Server Copilot Worker
+After=network.target
+
+[Service]
+Type=simple
+Environment=HOME=/root
+WorkingDirectory=/root
+ExecStart=/bin/bash /root/.copilot/cross-server/worker.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cross-server-worker
+
+[Install]
+WantedBy=multi-user.target
