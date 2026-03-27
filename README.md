@@ -108,3 +108,20 @@ cat ~/.copilot/cross-server/remote-state.json
 ## 📄 License
 
 Internal project — DarooLink infrastructure.
+
+## 🔧 Server-Specific Files
+
+Each server has its own `sync.sh` due to different connection methods:
+
+| Server | Connection Method | sync.sh |
+|--------|------------------|---------|
+| Helsinki | Reverse tunnel (ports 2222-2224) | `scripts/helsinki/sync.sh` |
+| Iran | SOCKS5 proxy → SSH:443 | `scripts/iran/sync.sh` |
+
+Common scripts (`worker.sh`, `update-state.sh`) are shared.
+
+### git-sync.sh
+
+The `git-sync.sh` script is role-aware:
+- **Helsinki**: Direct git push
+- **Iran**: Uses `http.proxy=http://127.0.0.1:10809` (xray-vpn HTTP proxy)

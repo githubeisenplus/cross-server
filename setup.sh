@@ -19,12 +19,21 @@ echo "=== Cross-Server Setup ($ROLE) ==="
 echo "[1/6] Creating directories..."
 mkdir -p "$DIR/tasks/pending" "$DIR/tasks/running" "$DIR/tasks/done"
 
-# 2. Copy scripts
+# 2. Copy scripts (common + server-specific)
 echo "[2/6] Installing scripts..."
 cp "$REPO_DIR/scripts/worker.sh" "$DIR/worker.sh"
-cp "$REPO_DIR/scripts/sync.sh" "$DIR/sync.sh"
 cp "$REPO_DIR/scripts/update-state.sh" "$DIR/update-state.sh"
 cp "$REPO_DIR/docs/shared-agents.md" "$DIR/shared-agents.md"
+
+# Server-specific sync.sh
+if [ -f "$REPO_DIR/scripts/$ROLE/sync.sh" ]; then
+    cp "$REPO_DIR/scripts/$ROLE/sync.sh" "$DIR/sync.sh"
+    echo "  Using $ROLE-specific sync.sh"
+else
+    cp "$REPO_DIR/scripts/sync.sh" "$DIR/sync.sh"
+    echo "  Using generic sync.sh"
+fi
+
 chmod +x "$DIR/worker.sh" "$DIR/sync.sh" "$DIR/update-state.sh"
 
 # 3. Set server role
@@ -41,12 +50,15 @@ echo "  Worker service: $(systemctl is-active cross-server-worker)"
 
 # 5. Setup cron sync
 echo "[5/6] Setting up cron sync..."
-CRON_LINE="* * * * * /bin/bash $DIR/sync.sh >> $DIR/sync.log 2>&1"
-# Remove old entries
+if [ "$ROLE" = "iran" ]; then
+    INTERVAL="*/2"  # Iran: every 2 minutes
+else
+    INTERVAL="*"    # Helsinki: every 1 minute
+fi
+CRON_LINE="$INTERVAL * * * * /bin/bash $DIR/sync.sh >> $DIR/sync.log 2>&1"
 crontab -l 2>/dev/null | grep -v "cross-server/sync.sh" | crontab - 2>/dev/null || true
-# Add new entry
 (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
-echo "  Cron: sync every 1 minute"
+echo "  Cron: sync every $([ "$ROLE" = "iran" ] && echo '2 minutes' || echo '1 minute')"
 
 # 6. Generate initial state
 echo "[6/6] Generating initial state..."
@@ -58,8 +70,3 @@ echo "  Role: $ROLE"
 echo "  Dir:  $DIR"
 echo "  Worker: $(systemctl is-active cross-server-worker)"
 echo "  Logs: $DIR/worker.log + $DIR/sync.log"
-echo ""
-echo "Test: cat > $DIR/tasks/pending/test-ping.json << 'EOF'"
-echo '{"id":"test-ping","action":"ping","target":"'"$ROLE"'"}'
-echo "EOF"
-echo "Then: sleep 35 && cat $DIR/tasks/done/test-ping.json"
